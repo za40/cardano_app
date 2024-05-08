@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
@@ -19,5 +20,35 @@ class ListCardanoNFTsAndTokens extends Command
     }
 
     public function handle()
-    {}
+    {
+        $stakeKey = $this->argument('stakeKey');
+
+        $response = Http::withHeaders([
+            'project_id' => $this->blockfrostApiKey,
+        ])->get("{$this->blockfrostApiUrl}accounts/{$stakeKey}");
+
+        if ($response->failed()) {
+            $this->error('Unable to fetch account data. Check the stake key or API key.');
+            return;
+        }
+
+        $this->info("Fetching NFTs and tokens for stake key: {$stakeKey}...");
+
+        $assetsResponse = Http::withHeaders([
+            'project_id' => $this->blockfrostApiKey,
+        ])->get("{$this->blockfrostApiUrl}accounts/{$stakeKey}/addresses/assets");
+
+        if ($assetsResponse->failed()) {
+            $this->error('Unable to fetch assets data.');
+            return;
+        }
+
+        $assets = $assetsResponse->json();
+        $this->info("\nAssets:");
+        foreach ($assets as $asset) {
+            $this->info("- Asset: {$asset['unit']}, Quantity: {$asset['quantity']}");
+        }
+
+        $this->info("\nDone.");
+    }
 }

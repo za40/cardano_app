@@ -19,10 +19,28 @@ class CardanoAssetController extends Controller
     {
         return view('cardano.index');
     }
+
     public function showAssets(Request $request)
     {
         $stakeKey = $request->input('stake_key');
-        $assets = [];
+
+        $response = Http::withHeaders([
+            'project_id' => $this->blockfrostApiKey,
+        ])->get("{$this->blockfrostApiUrl}accounts/{$stakeKey}");
+
+        if ($response->failed()) {
+            return back()->withErrors('Unable to fetch account data. Check the stake key or API key.');
+        }
+
+        $assetsResponse = Http::withHeaders([
+            'project_id' => $this->blockfrostApiKey,
+        ])->get("{$this->blockfrostApiUrl}accounts/{$stakeKey}/addresses/assets");
+
+        if ($assetsResponse->failed()) {
+            return back()->withErrors('Unable to fetch assets data.');
+        }
+
+        $assets = $assetsResponse->json();
         return view('cardano.assets', compact('assets', 'stakeKey'));
     }
 }
